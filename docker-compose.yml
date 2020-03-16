@@ -1,0 +1,42 @@
+version: "3"
+services:
+  web:
+    build: Frontend/OrderService
+    ports:
+      - "4200:4200"
+  authservice:
+    build: Backend/AuthenticationService/
+    depends_on:
+      - postgres
+    ports:
+      - "5000:5000"
+  customerservice:
+    build: Backend/CustomerService/
+    depends_on:
+      - rabbitmq
+      - postgres
+    ports:
+      - "5001:5001"
+  orderservice:
+    build: Backend/OrderService/
+    depends_on:
+      - rabbitmq
+      - postgres
+    ports:
+      - "5002:5002"
+  documentservice:
+    build: Backend/DocumentService/
+    depends_on:
+      - mongodb
+    ports:
+      - "5003:5003"
+  postgres:
+    image: postgres
+    ports:
+      - "5432:5432"
+  rabbitmq:
+    image: rabbitmq
+  mongodb:
+    image: mongo
+    ports:
+      - "27017:27017"
