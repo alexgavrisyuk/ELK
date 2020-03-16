@@ -59,11 +59,39 @@ services:
       - "9200:9200"
       - "9300:9300"
     environment:
-      # ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
       ELASTIC_PASSWORD: changeme
       # Use single node discovery in order to disable production mode and avoid bootstrap checks
       # see https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
       discovery.type: single-node
+    networks:
+      - elk
+
+  logstash:
+    build:
+      context: logstash/
+      args:
+        ELK_VERSION: $ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./logstash/config/logstash.yml
+        target: /usr/share/logstash/config/logstash.yml
+        read_only: true
+      - type: bind
+        source: ./logstash/pipeline
+        target: /usr/share/logstash/pipeline
+        read_only: true
+    ports:
+      - "5010:5000/tcp"
+      - "5010:5000/udp"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
   kibana:
     build:
       context: kibana/
@@ -76,49 +104,14 @@ services:
         read_only: true
     ports:
       - "5601:5601"
+    networks:
+      - elk
     depends_on:
       - elasticsearch
-  logstash:
-    # build:
-    #   context: logstash/
-    #   args:
-    #     ELK_VERSION: $ELK_VERSION
-    # volumes:
-    #   - type: bind
-    #     source: ./logstash/config/logstash.yml
-    #     target: /usr/share/logstash/config/logstash.yml
-    #     read_only: true
-    #   - type: bind
-    #     source: ./logstash/pipeline
-    #     target: /usr/share/logstash/pipeline
-    #     read_only: true
-    # ports:
-    #   - "5010:5000/tcp"
-    #   - "5010:5000/udp"
-    #   - "9600:9600"
-    # environment:
-    #   LS_JAVA_OPTS: "-Xmx256m -Xms256m"
-    # depends_on:
-    #   - elasticsearch
-    #   - kibana
-    #   - orderservice
-    labels:
-      com.example.service: "logstash"
-      com.example.description: "For logging data"
-      http.host: "0.0.0.0"
-      xpack.monitoring.elasticsearch.hosts: "elasticsearch:9200" 
-      xpack.monitoring.enabled: true
-      xpack.monitoring.elasticsearch.username: elastic
-      xpack.monitoring.elasticsearch.password: changeme
 
-    image: logstash:5.4.3
-    volumes:
-      - ./:/logstash_dir
-    # command: logstash -f /logstash/logstash.conf
-    command: logstash -f /logstash_dir/logstash/pipeline/logstash.conf
-    depends_on:
-      - elasticsearch
-    ports:
-      - "5959:5959"
+
+networks:
+  elk:
+    driver: bridge
 volumes:
   elasticsearch:
